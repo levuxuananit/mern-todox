@@ -1,0 +1,49 @@
+import { FilterType } from "@/lib/data";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Filter } from "lucide-react";
+
+const StatsAndFilters = ({
+  completedTaskCount = 0,
+  activeTaskCount = 0,
+  fillter = "all",
+}) => {
+  return (
+    <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="flex gap-3">
+        {/* Badge số task đang làm */}
+        <Badge
+          variant="secondary"
+          className="bg-white/50 text-accent-foreground border-info/20"
+        >
+          {activeTaskCount} {FilterType.active}
+        </Badge>
+
+        {/* Badge số task hoàn thành */}
+        <Badge
+          variant="secondary"
+          className="bg-white/50 text-success border-success/20"
+        >
+          {completedTaskCount} {FilterType.completed}
+        </Badge>
+      </div>
+
+      {/* Bộ lọc */}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {Object.keys(FilterType).map((type) => (
+          <Button
+            key={type}
+            variant={fillter === type ? "gradient" : "ghost"}
+            size="sm"
+            className="capitalize"
+          >
+            <Filter className="size-4" />
+            {FilterType[type]}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default StatsAndFilters;
