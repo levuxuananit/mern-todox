@@ -9,16 +9,75 @@ import {
   Trash2,
 } from "lucide-react";
 import { Input } from "./ui/input";
+import api from "@/lib/axios";
+import { toast } from "sonner";
+import { useState } from "react";
 
-const TaskCard = ({ task, index }) => {
-  let isEditing = false;
+const TaskCard = ({ task, index, handleTaskChanged }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [updateTitle, setUpdateTitle] = useState(task.title || "");
+
+  // Hàm update title
+  const updateTaskTitle = async () => {
+    try {
+      setIsEditing(false);
+      await api.put(`tasks/${task._id}`, { title: updateTitle });
+      toast.success(`Nhiệm vụ đã đổi thành ${updateTitle}.`);
+      handleTaskChanged();
+    } catch (error) {
+      console.error("Lỗi xảy ra khi update Task", error);
+      toast.error("Lỗi xảy ra khi update Task");
+    }
+  };
+  // Hàm xóa task
+  const deleteTask = async (taskId) => {
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      toast.success("Nhiệm vụ đã xóa.");
+      handleTaskChanged();
+    } catch (error) {
+      console.error("Lỗi xảy ra khi xóa tasks:", error);
+      toast.error("Lỗi xảy ra khi xóa tasks");
+    }
+  };
+
+  // Hàm xử lý sự kiện ấn -> bắt sự kiến: "Ấn Enter để gọi hàm updateTaskTitle"
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter") {
+      updateTaskTitle();
+    }
+  };
+
+  // Hàm xử lý nút đánh dấu active / complete
+  const toggleTaskButton = async () => {
+    try {
+      if (task.status === "active") {
+        await api.put(`/tasks/${task._id}`, {
+          status: "complete",
+          completedAt: new Date().toISOString(),
+        });
+        toast.success(`${task.title} đã hoàn thành`);
+      } else {
+        await api.put(`/tasks/${task._id}`, {
+          status: "active",
+          completedAt: null,
+        });
+        toast.success(`${task.title} đã đổi sang chưa hoàn thành`);
+      }
+      handleTaskChanged();
+    } catch (error) {
+      console.error("Lỗi xảy ra khi điểm danh", error);
+      toast.error("Lỗi xảy ra khi điểm danh");
+    }
+  };
+
   return (
     <Card
       className={cn(
         "p-4 bg-gradient-card border-0 shadow-custom-md hover:shadow-custom-lg trasition-all duration-200 animate-fade-in group",
         task.status === "complete" && "opticity-75",
       )}
-      style={{ animationDelay: `${index * 50}ms` }}
+      style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="flex items-center gap-4">
         {/* Nút tròn */}
@@ -31,6 +90,7 @@ const TaskCard = ({ task, index }) => {
               ? "text-success hover:text-success/80"
               : "text-muted-foreground hover:text-primary",
           )}
+          onClick={toggleTaskButton}
         >
           {task.status === "complete" ? (
             <CheckCircle2 className="size-5" />
@@ -45,6 +105,14 @@ const TaskCard = ({ task, index }) => {
             <Input
               placeholder="Cần phải làm gì?"
               className=" flex-1 h-12 text-base border-border/50 focus:border-primary/50 focus:ring-primary/20"
+              type="text"
+              value={updateTitle}
+              onChange={(event) => setUpdateTitle(event.target.value)}
+              onKeyPress={handleKeyPress}
+              onBlur={() => {
+                setIsEditing(false);
+                setUpdateTitle(task.title || "");
+              }}
             />
           ) : (
             <p
@@ -80,20 +148,25 @@ const TaskCard = ({ task, index }) => {
 
         {/* Nút chỉnh và xóa */}
         <div className="hidden gap-2 group-hover:inline-flex animate-slide-up">
-          {/* Nú edit */}
+          {/* Nút edit */}
           <Button
             variant="ghost"
             size="icon"
             className="shrink-0 transition-colorc size-8 text-muted-foreground hover:text-info"
+            onClick={() => {
+              setIsEditing(true);
+              setUpdateTitle(task.title || "");
+            }}
           >
             <SquarePen className="size-4" />
           </Button>
 
-          {/* Nú xóa */}
+          {/* Nút xóa */}
           <Button
             variant="ghost"
             size="icon"
             className="shrink-0 transition-colorc size-8 text-muted-foreground hover:text-destructive"
+            onClick={() => deleteTask(task._id)}
           >
             <Trash2 className="size-4" />
           </Button>

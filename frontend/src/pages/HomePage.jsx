@@ -7,25 +7,91 @@ import TaskList from "@/components/TaskList";
 import TaskListPaginition from "@/components/TaskListPaginition";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import axios from "axios";
-
+import api from "@/lib/axios";
+import { visibleTaskLimit } from "@/lib/data";
 const HomePage = () => {
   const [taskBuffer, setTaskBuffer] = useState([]);
+  const [activeTaskCount, setActiveTaskCount] = useState(0);
+  const [completeTaskCount, setCompleteTaskCount] = useState(0);
+  const [filter, setFilter] = useState("all");
+  const [dateQuery, setDateQuery] = useState("today");
+  const [page, setPage] = useState(1);
 
+  // Gọi API getALLTasks để lấy ra danh sách task
+  const fetchTasks = async () => {
+    try {
+      const res = await api.get(`/tasks?filter=${dateQuery}`);
+      setTaskBuffer(res.data.tasks);
+      setActiveTaskCount(res.data.activeCount);
+      setCompleteTaskCount(res.data.completeCount);
+    } catch (error) {
+      console.error("Lỗi xảy ra khi truy vấn tasks:", error);
+      toast.error("Lỗi xảy ra khi truy vấn tasks");
+    }
+  };
+
+  // useEffect Gọi API getALLTasks, lần đầu sau khi mount và sau khi dateQuery thay đổi (đây là filter theo ngày)
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const res = await axios.get("http://localhost:5001/api/tasks");
-        setTaskBuffer(res.data);
-        console.log(res.data);
-      } catch (error) {
-        console.error("Lỗi xảy ra khi truy vấn tasks:", error);
-        toast.error("Lỗi xảy ra khi truy vấn tasks");
-      }
-    };
-
     fetchTasks();
-  }, []);
+  }, [dateQuery]);
+
+  // useEffect Gọi API getALLTasks sau khi filter
+  useEffect(() => {
+    fetchTasks();
+  }, [filter, dateQuery]);
+
+  // Biến lọc dữ liệu theo status, không dùng state vì muốn mỗi lần component re-reder thì filter data mới luôn
+  const filteredTasks = taskBuffer.filter((task) => {
+    switch (filter) {
+      case "active":
+        return task.status === "active";
+      case "completed":
+        return task.status === "complete";
+      default:
+        return true;
+    }
+  });
+
+  // Hàm xử lý cập nhật lại giao diện khi có thay đổi
+  const handleTaskChanged = () => {
+    fetchTasks();
+  };
+
+  // Hàm đi tới trang kế tiếp
+  const handleNext = () => {
+    if (page < totalPages) {
+      setPage((prev) => {
+        return prev + 1;
+      });
+    }
+  };
+  // Hàm lùi về trang trước
+  const handlePrev = () => {
+    if (page > 1) {
+      setPage((prev) => {
+        return prev - 1;
+      });
+    }
+  };
+
+  // Hàm tới trang bất kỳ
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
+
+  // Logic lấy những task hiện thị trên trang hiện tại
+  const visibleTasks = filteredTasks.slice(
+    (page - 1) * visibleTaskLimit,
+    page * visibleTaskLimit,
+  );
+
+  if (visibleTasks.length === 0) {
+    handlePrev();
+  }
+
+  // Logic tính xem có tổng bao nhiêu trang
+  // ceil() Hàm làm tròn lên
+  const totalPages = Math.ceil(filteredTasks.length / visibleTaskLimit);
 
   return (
     <div className="min-h-screen w-full bg-white relative">
@@ -48,18 +114,36 @@ const HomePage = () => {
           {/* Phần đầu trang */}
           <Header />
           {/* Tạo nhiệm vụ*/}
-          <AddTask />
+          <AddTask handleNewTaskAdded={handleTaskChanged} />
           {/* Thống kê và bộ lọc */}
-          <StatsAndFilters />
+          <StatsAndFilters
+            filter={filter}
+            setFilter={setFilter}
+            activeTaskCount={activeTaskCount}
+            completedTaskCount={completeTaskCount}
+          />
           {/* Danh sách nhiệm vụ */}
-          <TaskList filtedTasks={taskBuffer} />
+          <TaskList
+            filtedTasks={visibleTasks}
+            filter={filter}
+            handleTaskChanged={handleTaskChanged}
+          />
           {/* Phân trang và bộ lọc theo Date */}
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <TaskListPaginition />
-            <DataTimeFilter />
+            <TaskListPaginition
+              handleNext={handleNext}
+              handlePrev={handlePrev}
+              handlePageChange={handlePageChange}
+              page={page}
+              totalPages={totalPages}
+            />
+            <DataTimeFilter dateQuery={dateQuery} setDateQuery={setDateQuery} />
           </div>
           {/* Chân trang */}
-          <Footer />
+          <Footer
+            activeTasksCount={activeTaskCount}
+            completedTasksCount={completeTaskCount}
+          />
         </div>
       </div>
     </div>
