@@ -52,7 +52,7 @@ const AddTask = ({ handleNewTaskAdded }) => {
         <Button
           variant="gradient"
           size="xl"
-          className="px-6"
+          className="px-6 hover:cursor-pointer"
           onClick={addTask}
           disabled={!newTaskTitle.trim()} // nếu ô input không có giá trị (không tính khoảng trắng) thì không thể ấn nút
         >

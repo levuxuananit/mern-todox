@@ -30,13 +30,13 @@ const StatsAndFilters = ({
       </div>
 
       {/* Bộ lọc */}
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-row gap-2 ">
         {Object.keys(FilterType).map((type) => (
           <Button
             key={type}
             variant={filter === type ? "gradient" : "ghost"}
             size="sm"
-            className="capitalize"
+            className="capitalize hover:cursor-pointer"
             onClick={() => setFilter(type)}
           >
             <Filter className="size-4" />
